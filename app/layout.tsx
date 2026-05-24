@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { NavigationProgress } from "@/components/ui/NavigationProgress";
 import { ReaderModeBanner } from "@/components/ui/ReaderModeBanner";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import CrimsonTracker from "@/src/components/CrimsonTracker";
 
 export const metadata: Metadata = {
@@ -48,6 +49,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased bg-[#0a0a0a] text-zinc-100 min-h-screen">
+        <GoogleAnalytics />
         <Suspense fallback={null}>
           <NavigationProgress />
         </Suspense>
