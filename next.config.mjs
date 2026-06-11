@@ -6,6 +6,14 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.theconversation.com',
+      },
+    ],
+  },
 }
 
 export default nextConfig

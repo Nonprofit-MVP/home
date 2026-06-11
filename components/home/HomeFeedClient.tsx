@@ -5,9 +5,10 @@ import { FeedColumn } from './FeedColumn'
 import { TagFilterBar } from './TagFilterBar'
 import { SearchBar, DEFAULT_FILTERS } from './SearchBar'
 import { CommunitySection } from './CommunitySection'
+import { ArticlesSection } from './ArticlesSection'
 import { cn } from '@/lib/utils'
 import type { SearchFilters } from './SearchBar'
-import type { Paper, User } from '@/types'
+import type { Article, Paper, User } from '@/types'
 
 type FeedTab = 'featured' | 'new' | 'trending'
 
@@ -31,6 +32,7 @@ interface Props {
   initialFeatured: Paper[]
   initialNew: Paper[]
   initialTrending: Paper[]
+  initialArticles: Article[]
   initialContributors: TopContributor[]
   initialReplications: RecentRep[]
 }
@@ -39,6 +41,7 @@ export function HomeFeedClient({
   initialFeatured,
   initialNew,
   initialTrending,
+  initialArticles,
   initialContributors,
   initialReplications,
 }: Props) {
@@ -48,14 +51,15 @@ export function HomeFeedClient({
 
   const isFiltered = !!(filters.query || filters.status || filters.sortBy !== 'newest' || filters.dateRange !== 'all' || selectedTag)
 
-  // When initial data applies: no tag and no search active
   const initialFor = (type: FeedType) =>
     !isFiltered ? (type === 'featured' ? initialFeatured : type === 'new' ? initialNew : initialTrending) : undefined
 
   return (
     <>
-      {/* Sticky bar: search + tag chips */}
-      <div className="sticky top-14 z-30 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/5">
+      <ArticlesSection initialArticles={initialArticles} />
+
+      {/* Papers-only search + tags */}
+      <div className="sticky top-14 z-30 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/5 border-t border-white/5">
         <div className="py-3">
           <SearchBar filters={filters} onChange={setFilters} />
         </div>
@@ -64,7 +68,6 @@ export function HomeFeedClient({
         </div>
       </div>
 
-      {/* Mobile tab bar */}
       <div className="md:hidden flex items-center border-b border-white/5 px-4 bg-[#0a0a0a]">
         {TABS.map(tab => (
           <button
@@ -82,16 +85,22 @@ export function HomeFeedClient({
         ))}
       </div>
 
-      {/* Feed */}
       <div id="feed" className="max-w-7xl mx-auto px-4 pt-6 pb-10">
-        {/* Desktop 3-column */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-4 rounded-sm bg-[#F5A3FF]/40" />
+            <h2 className="text-xs font-mono font-semibold text-zinc-400 tracking-widest uppercase">
+              Papers
+            </h2>
+          </div>
+        </div>
+
         <div className="hidden md:grid md:grid-cols-3 gap-6">
           <FeedColumn type="featured" tag={selectedTag} initialPapers={initialFor('featured')} search={filters} />
           <FeedColumn type="new"      tag={selectedTag} initialPapers={initialFor('new')}      search={filters} />
           <FeedColumn type="trending" tag={selectedTag} initialPapers={initialFor('trending')}  search={filters} />
         </div>
 
-        {/* Mobile single column */}
         <div className="md:hidden">
           <FeedColumn
             type={activeTab}
@@ -102,7 +111,6 @@ export function HomeFeedClient({
         </div>
       </div>
 
-      {/* Community section */}
       <div className="border-t border-white/5 pt-10">
         <div className="max-w-7xl mx-auto px-4 mb-6">
           <div className="flex items-center gap-2">

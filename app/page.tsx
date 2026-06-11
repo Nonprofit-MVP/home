@@ -4,7 +4,7 @@ import { FeedColumn } from '@/components/home/FeedColumn'
 import { TagFilterBar } from '@/components/home/TagFilterBar'
 import { CommunitySection } from '@/components/home/CommunitySection'
 import { HomeFeedClient } from '@/components/home/HomeFeedClient'
-import type { Paper, User, ReplicationAttempt } from '@/types'
+import type { Article, Paper, User, ReplicationAttempt } from '@/types'
 
 export const revalidate = 60 // ISR: revalidate every 60s
 
@@ -21,6 +21,7 @@ export default async function HomePage() {
     papersCountRes,
     verifiedCountRes,
     repsCountRes,
+    articlesRes,
   ] = await Promise.all([
     supabase.from('papers').select('*').eq('status', 'peer_verified').order('citation_count', { ascending: false }).range(0, 9),
     supabase.from('papers').select('*').neq('status', 'draft').order('created_at', { ascending: false }).range(0, 9),
@@ -30,6 +31,12 @@ export default async function HomePage() {
     supabase.from('papers').select('id', { count: 'exact', head: true }).neq('status', 'draft'),
     supabase.from('papers').select('id', { count: 'exact', head: true }).eq('status', 'peer_verified'),
     supabase.from('replication_attempts').select('id', { count: 'exact', head: true }),
+    supabase
+      .from('articles')
+      .select('*')
+      .contains('field_tags', ['canada-english'])
+      .order('published_at', { ascending: false })
+      .range(0, 8),
   ])
 
   const featuredPapers = (featuredRes.data as unknown as Paper[]) ?? []
@@ -56,6 +63,10 @@ export default async function HomePage() {
     paperId: r.paper?.id,
   }))
 
+  const initialArticles = articlesRes.error
+    ? []
+    : ((articlesRes.data as unknown as Article[]) ?? [])
+
   const stats = {
     papers: papersCountRes.count ?? 0,
     peerVerified: verifiedCountRes.count ?? 0,
@@ -70,6 +81,7 @@ export default async function HomePage() {
         initialFeatured={featuredPapers}
         initialNew={newPapers}
         initialTrending={trendingPapers}
+        initialArticles={initialArticles}
         initialContributors={topContributors}
         initialReplications={replications}
       />

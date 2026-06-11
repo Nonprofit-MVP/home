@@ -128,3 +128,20 @@ export interface ChatMessage {
 export interface PaperFeedItem extends Paper {
   isBookmarked?: boolean;
 }
+
+export interface Article {
+  id: string;
+  external_id: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  authors: Author[];
+  source_name: string;
+  source_url: string;
+  cover_image_url?: string;
+  field_tags: string[];
+  view_count: number;
+  published_at?: string;
+  created_at: string;
+  updated_at: string;
+}

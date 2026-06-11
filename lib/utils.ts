@@ -135,6 +135,24 @@ export const FIELD_TAGS = [
   'ux',
 ]
 
+export type ArticleLocale = 'canada-english' | 'canada-french'
+
+export const ARTICLE_EDITIONS: { value: ArticleLocale; label: string }[] = [
+  { value: 'canada-english', label: 'Canada (English)' },
+  { value: 'canada-french', label: 'Canada (French)' },
+]
+
+export const ARTICLE_TAGS = [
+  'science',
+  'technology',
+  'canada-english',
+  'canada-french',
+] as const
+
+export function formatArticleTag(tag: string): string {
+  return tag.replace(/-/g, ' ')
+}
+
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength).trim() + '...'
