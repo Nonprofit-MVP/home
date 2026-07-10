@@ -26,7 +26,7 @@ export function PaperCard({ paper, className, compact = false, href }: PaperCard
     <article
       className={cn(
         'bg-[#111111] border border-white/8 rounded-lg p-4 transition-all duration-200',
-        'group-hover:-translate-y-0.5 group-hover:shadow-card-hover group-hover:border-white/15',
+        'group-hover:shadow-card-hover group-hover:border-white/15',
         className
       )}
     >

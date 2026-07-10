@@ -2,8 +2,6 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { ArticleBadge } from '@/components/ui/ArticleBadge'
-import { TagChip } from '@/components/ui/TagChip'
 import { Button } from '@/components/ui/Button'
 import type { Article } from '@/types'
 import { formatDate, formatAuthors } from '@/lib/utils'
@@ -65,7 +63,6 @@ export default async function ArticlePage({ params }: PageProps) {
 
       <div className="mb-6">
         <div className="flex flex-wrap items-center gap-3 mb-4">
-          <ArticleBadge />
           <span className="text-[11px] font-mono text-zinc-600 uppercase tracking-wider">
             {article.source_name}
           </span>
@@ -123,15 +120,6 @@ export default async function ArticlePage({ params }: PageProps) {
           {article.excerpt}
         </p>
 
-        {article.field_tags?.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-8">
-            {article.field_tags
-              .filter((tag) => tag !== 'the-conversation')
-              .map((tag) => (
-                <TagChip key={tag} tag={tag} />
-              ))}
-          </div>
-        )}
       </div>
 
       <div

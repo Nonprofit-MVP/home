@@ -13,9 +13,9 @@ import type { Article, Paper, User } from '@/types'
 type FeedTab = 'featured' | 'new' | 'trending'
 
 const TABS: { id: FeedTab; label: string }[] = [
+  { id: 'trending', label: 'Trending' },
   { id: 'featured', label: 'Featured' },
   { id: 'new', label: 'New' },
-  { id: 'trending', label: 'Trending' },
 ]
 
 interface TopContributor { user: User; paperCount: number }
@@ -46,7 +46,7 @@ export function HomeFeedClient({
   initialReplications,
 }: Props) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<FeedTab>('featured')
+  const [activeTab, setActiveTab] = useState<FeedTab>('trending')
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS)
 
   const isFiltered = !!(filters.query || filters.status || filters.sortBy !== 'newest' || filters.dateRange !== 'all' || selectedTag)
@@ -86,19 +86,10 @@ export function HomeFeedClient({
       </div>
 
       <div id="feed" className="max-w-7xl mx-auto px-4 pt-6 pb-10">
-        <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-4 rounded-sm bg-[#F5A3FF]/40" />
-            <h2 className="text-xs font-mono font-semibold text-zinc-400 tracking-widest uppercase">
-              Papers
-            </h2>
-          </div>
-        </div>
-
         <div className="hidden md:grid md:grid-cols-3 gap-6">
+          <FeedColumn type="trending" tag={selectedTag} initialPapers={initialFor('trending')} search={filters} />
           <FeedColumn type="featured" tag={selectedTag} initialPapers={initialFor('featured')} search={filters} />
           <FeedColumn type="new"      tag={selectedTag} initialPapers={initialFor('new')}      search={filters} />
-          <FeedColumn type="trending" tag={selectedTag} initialPapers={initialFor('trending')}  search={filters} />
         </div>
 
         <div className="md:hidden">

@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { TagChip } from '@/components/ui/TagChip'
@@ -83,6 +84,23 @@ export default async function PaperPage({ params }: PageProps) {
 
   const authors = Array.isArray(paper.authors) ? paper.authors : []
 
+  // Authors are free-text metadata with no user_id — the only shared identifier
+  // with a registered account is ORCID. Resolve ORCID → username so we can link
+  // an author to their profile when (and only when) an account actually exists.
+  const authorOrcids = authors
+    .map((a) => a.orcid)
+    .filter((orcid): orcid is string => !!orcid)
+  const orcidToUsername = new Map<string, string>()
+  if (authorOrcids.length > 0) {
+    const { data: matchedUsers } = await supabase
+      .from('users')
+      .select('username, orcid')
+      .in('orcid', authorOrcids)
+    for (const u of (matchedUsers ?? []) as { username: string; orcid: string | null }[]) {
+      if (u.orcid) orcidToUsername.set(u.orcid, u.username)
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
@@ -93,16 +111,28 @@ export default async function PaperPage({ params }: PageProps) {
           </h1>
 
           <div className="flex flex-wrap gap-2 mb-4">
-            {authors.map((author, i) => (
-              <div key={i} className="flex items-center gap-1.5">
-                <span className="text-sm text-zinc-300">{author.name}</span>
-                {author.institution && (
-                  <span className="text-[11px] font-mono px-1.5 py-0.5 rounded border border-white/8 text-zinc-600">
-                    {author.institution}
-                  </span>
-                )}
-              </div>
-            ))}
+            {authors.map((author, i) => {
+              const username = author.orcid ? orcidToUsername.get(author.orcid) : undefined
+              return (
+                <div key={i} className="flex items-center gap-1.5">
+                  {username ? (
+                    <Link
+                      href={`/profile/${username}`}
+                      className="text-sm text-zinc-300 hover:text-white underline decoration-white/20 hover:decoration-white/60 underline-offset-2 transition-colors"
+                    >
+                      {author.name}
+                    </Link>
+                  ) : (
+                    <span className="text-sm text-zinc-300">{author.name}</span>
+                  )}
+                  {author.institution && (
+                    <span className="text-[11px] font-mono px-1.5 py-0.5 rounded border border-white/8 text-zinc-600">
+                      {author.institution}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
           </div>
 
           <div className="flex flex-wrap items-center gap-3 mb-6 pb-6 border-b border-white/8">

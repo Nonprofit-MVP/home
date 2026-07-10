@@ -17,9 +17,9 @@ interface FeedColumnProps {
 }
 
 const COLUMN_LABELS: Record<FeedType, string> = {
-  featured: 'Featured',
-  new: 'New',
-  trending: 'Trending',
+  featured: 'Featured Papers',
+  new: 'New Papers',
+  trending: 'Trending Papers',
 }
 
 const PAGE_SIZE = 10

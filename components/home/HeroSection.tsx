@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { BookOpen, Lightbulb, PenLine, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -16,12 +15,6 @@ function DiscordIcon({ className }: { className?: string }) {
       <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.2252 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z" />
     </svg>
   );
-}
-
-interface Stats {
-  papers: number;
-  peerVerified: number;
-  replications: number;
 }
 
 const RESEARCH_STEPS: {
@@ -49,37 +42,7 @@ const RESEARCH_STEPS: {
   },
 ];
 
-function AnimatedCounter({
-  target,
-  duration = 1500,
-}: {
-  target: number;
-  duration?: number;
-}) {
-  const [count, setCount] = useState(0);
-  const rafRef = useRef<number>();
-
-  useEffect(() => {
-    const start = Date.now();
-    const tick = () => {
-      const elapsed = Date.now() - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [target, duration]);
-
-  return <span>{count.toLocaleString()}</span>;
-}
-
-export function HeroSection({ initialStats }: { initialStats: Stats }) {
-  const stats = initialStats;
-
+export function HeroSection() {
   return (
     <section className="relative px-2 sm:px-4 py-16 sm:py-24">
       <div className="mx-auto max-w-7xl">
@@ -92,7 +55,7 @@ export function HeroSection({ initialStats }: { initialStats: Stats }) {
                 Research publishing, rebuilt.
               </h1>
 
-              <div className="flex flex-col items-center justify-center gap-3 mb-14 sm:flex-row">
+              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link href="#feed">
                   <Button variant="primary" size="lg">
                     Browse Research
@@ -104,25 +67,6 @@ export function HeroSection({ initialStats }: { initialStats: Stats }) {
                   </Button>
                 </Link>
               </div>
-
-              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm font-mono">
-                <div className="flex items-center gap-2 text-zinc-300/70">
-                  <AnimatedCounter target={stats.papers} />
-                  <span className="text-zinc-400/60">papers published</span>
-                </div>
-                <div className="hidden sm:block w-px h-4 bg-white/10" />
-                <div className="flex items-center gap-2 text-zinc-300/70">
-                  <AnimatedCounter target={stats.peerVerified} />
-                  <span className="text-zinc-400/60">peer verified</span>
-                </div>
-                <div className="hidden sm:block w-px h-4 bg-white/10" />
-                <div className="flex items-center gap-2 text-zinc-300/70">
-                  <AnimatedCounter target={stats.replications} />
-                  <span className="text-zinc-400/60">
-                    replication attempts
-                  </span>
-                </div>
-              </div>
             </div>
 
             <div className="relative mx-auto max-w-3xl mt-12 rounded-xl border border-white/10 bg-white/[0.02] px-5 py-5 sm:px-6 sm:py-6">
@@ -130,34 +74,32 @@ export function HeroSection({ initialStats }: { initialStats: Stats }) {
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-4 rounded-sm bg-[#F5A3FF]/40 shrink-0" />
                   <span className="font-mono text-xs font-medium tracking-wide text-zinc-400">
-                    Journality for High Schoolers
+                    Journality Mentorship
                   </span>
                 </div>
 
                 <div className="text-left">
                   <h2 className="font-mono text-base sm:text-lg font-semibold text-zinc-200 mb-2 leading-snug">
-                    Free research mentorship for high school students.
+                    Free research mentorship for everyone.
                   </h2>
 
                   <p className="text-zinc-500 text-sm sm:text-base leading-relaxed mb-3">
-                    A community for high school students that guides you through
-                    the entire research process.
+                    A community for researchers at every stage, from high school
+                    students to lifelong learners, that guides you through the
+                    entire research process.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-                    {RESEARCH_STEPS.map((step, index) => (
+                    {RESEARCH_STEPS.map((step) => (
                       <div
                         key={step.title}
                         className="rounded-sm border border-white/[0.06] bg-white/[0.02] px-3 py-3"
                       >
-                        <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center mb-2.5">
                           <step.icon
                             className="w-4 h-4 text-[#F5A3FF]"
                             strokeWidth={1.5}
                           />
-                          <span className="font-mono text-[10px] text-zinc-600">
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
                         </div>
                         <h3 className="font-mono text-xs font-semibold text-zinc-300 mb-1">
                           {step.title}

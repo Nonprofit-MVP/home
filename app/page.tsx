@@ -22,9 +22,6 @@ export default async function HomePage() {
     trendingRes,
     repRes,
     papersForContributorsRes,
-    papersCountRes,
-    verifiedCountRes,
-    repsCountRes,
     articlesRes,
   ] = await Promise.all([
     supabase.from('papers').select('*').eq('status', 'peer_verified').order('citation_count', { ascending: false }).range(0, 9),
@@ -32,9 +29,6 @@ export default async function HomePage() {
     supabase.from('papers').select('*').neq('status', 'draft').order('view_count', { ascending: false }).range(0, 9),
     supabase.from('replication_attempts').select('*, researcher:users!replication_attempts_researcher_id_fkey(*), paper:papers!replication_attempts_paper_id_fkey(id, title)').order('created_at', { ascending: false }).limit(5),
     supabase.from('papers').select('submitter_id, submitter:users!papers_submitter_id_fkey(*)').neq('status', 'draft').limit(50),
-    supabase.from('papers').select('id', { count: 'exact', head: true }).neq('status', 'draft'),
-    supabase.from('papers').select('id', { count: 'exact', head: true }).eq('status', 'peer_verified'),
-    supabase.from('replication_attempts').select('id', { count: 'exact', head: true }),
     supabase
       .from('articles')
       .select('*')
@@ -71,15 +65,9 @@ export default async function HomePage() {
     ? []
     : ((articlesRes.data as unknown as Article[]) ?? [])
 
-  const stats = {
-    papers: papersCountRes.count ?? 0,
-    peerVerified: verifiedCountRes.count ?? 0,
-    replications: repsCountRes.count ?? 0,
-  }
-
   return (
     <div className="min-h-screen">
-      <HeroSection initialStats={stats} />
+      <HeroSection />
 
       <HomeFeedClient
         initialFeatured={featuredPapers}

@@ -8,7 +8,6 @@ import {
   DEFAULT_ARTICLE_FILTERS,
   type ArticleSearchFilters,
 } from './ArticleSearchBar'
-import { ArticleTagFilterBar } from './ArticleTagFilterBar'
 import { createClient } from '@/lib/supabase'
 import {
   ARTICLE_EDITIONS,
@@ -191,15 +190,6 @@ export function ArticlesSection({ initialArticles }: ArticlesSectionProps) {
     }
   }
 
-  function handleTagSelect(tag: string | null) {
-    if (tag === 'canada-english' || tag === 'canada-french') {
-      setLocale(tag)
-      setSelectedTag(null)
-      return
-    }
-    setSelectedTag(tag)
-  }
-
   async function loadMore() {
     if (loading || !hasMore) return
     await loadArticles(page + 1, true)
@@ -223,10 +213,7 @@ export function ArticlesSection({ initialArticles }: ArticlesSectionProps) {
 
         <div className="py-3 border-t border-white/5">
           <ArticleSearchBar filters={filters} onChange={setFilters} />
-          
-        </div>
-        <div className="pb-2.5">
-          <ArticleTagFilterBar selected={selectedTag} onSelect={handleTagSelect} />
+
         </div>
       </div>
 

@@ -3,9 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Eye, ExternalLink } from 'lucide-react'
-import { ArticleBadge } from './ArticleBadge'
-import { TagChip } from './TagChip'
-import { cn, formatAuthors, formatDate, formatNumber, formatArticleTag } from '@/lib/utils'
+import { cn, formatAuthors, formatDate, formatNumber } from '@/lib/utils'
 import type { Article } from '@/types'
 
 interface ArticleCardProps {
@@ -16,21 +14,18 @@ interface ArticleCardProps {
 export function ArticleCard({ article, className }: ArticleCardProps) {
   const authors = Array.isArray(article.authors) ? article.authors : []
   const authorLine = formatAuthors(authors)
-  const displayTags = article.field_tags
-    ?.filter((tag) => tag !== 'the-conversation' && tag !== 'canada-english' && tag !== 'canada-french')
-    .slice(0, 3) ?? []
 
   return (
     <Link href={`/articles/${article.id}`} className="block group">
       <article
         className={cn(
           'bg-[#111111] border border-white/8 rounded-lg overflow-hidden transition-all duration-200 h-full',
-          'group-hover:-translate-y-0.5 group-hover:shadow-card-hover group-hover:border-white/15',
+          'group-hover:shadow-card-hover group-hover:border-white/15',
           className
         )}
       >
-        {article.cover_image_url && (
-          <div className="relative aspect-[16/9] bg-zinc-900 border-b border-white/5">
+        <div className="relative aspect-[16/9] bg-zinc-900 border-b border-white/5">
+          {article.cover_image_url && (
             <Image
               src={article.cover_image_url}
               alt=""
@@ -38,12 +33,11 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 33vw"
             />
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="p-4">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <ArticleBadge />
+          <div className="flex items-start justify-end gap-2 mb-2">
             <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
               {article.source_name}
             </span>
@@ -58,14 +52,6 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
           <p className="text-[13px] text-zinc-500 line-clamp-3 leading-relaxed mb-3">
             {article.excerpt}
           </p>
-
-          {displayTags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
-                {displayTags.map((tag) => (
-                  <TagChip key={tag} tag={formatArticleTag(tag)} size="sm" />
-                ))}
-            </div>
-          )}
 
           <div className="flex items-center gap-3 text-[11px] font-mono text-zinc-600 pt-2 border-t border-white/5">
             <span>{formatDate(article.published_at || article.created_at)}</span>

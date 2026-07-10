@@ -122,7 +122,7 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-40 w-full border-b border-white/8 bg-[#0a0a0a]/80 backdrop-blur-xl">
+      <nav className="sticky top-0 z-40 w-full border-b border-white/8 bg-black">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
 
           {/* Mobile hamburger */}
