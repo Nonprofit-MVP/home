@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { refreshConversationArticlesIfStale } from '@/lib/articles'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const limit = Math.min(Number(searchParams.get('limit') ?? 12), 50)
   const offset = Math.max(Number(searchParams.get('offset') ?? 0), 0)
+
+  await refreshConversationArticlesIfStale()
 
   const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase

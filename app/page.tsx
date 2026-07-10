@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { refreshConversationArticlesIfStale } from '@/lib/articles'
 import { HeroSection } from '@/components/home/HeroSection'
 import { FeedColumn } from '@/components/home/FeedColumn'
 import { TagFilterBar } from '@/components/home/TagFilterBar'
@@ -9,6 +10,9 @@ import type { Article, Paper, User, ReplicationAttempt } from '@/types'
 export const revalidate = 60 // ISR: revalidate every 60s
 
 export default async function HomePage() {
+  // Pull the newest feed entries into the DB when the last import is stale
+  await refreshConversationArticlesIfStale()
+
   const supabase = await createServerSupabaseClient()
 
   // Fetch everything in a single parallel round-trip

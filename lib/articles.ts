@@ -67,6 +67,11 @@ export async function importConversationArticles() {
   for (const feed of CONVERSATION_FEEDS) {
     const xml = await fetchConversationFeed(feed.url)
     const entries = parseAtomFeed(xml)
+    // Dedupe by external_id — Postgres rejects an upsert batch that hits the
+    // same conflict target twice
+    const rows = Array.from(
+      new Map(entries.map((entry) => [entry.externalId, entryToArticleRow(entry, feed.tags)])).values()
+    )
     const feedResult = {
       locale: feed.locale,
       fetched: entries.length,
@@ -77,31 +82,33 @@ export async function importConversationArticles() {
 
     results.fetched += entries.length
 
-    for (const entry of entries) {
-      const row = entryToArticleRow(entry, feed.tags)
-      const { data: existing } = await supabase
+    if (rows.length > 0) {
+      const { data: existingRows } = await supabase
         .from('articles')
-        .select('id')
-        .eq('external_id', row.external_id)
-        .maybeSingle()
+        .select('external_id')
+        .in('external_id', rows.map((row) => row.external_id))
+      const existingIds = new Set(
+        ((existingRows ?? []) as { external_id: string }[]).map((r) => r.external_id)
+      )
 
       const { error } = await supabase
         .from('articles')
-        .upsert(row, { onConflict: 'external_id' })
+        .upsert(rows, { onConflict: 'external_id' })
 
       if (error) {
-        results.failed += 1
-        feedResult.failed += 1
-        results.errors.push(`${entry.title}: ${error.message}`)
-        continue
-      }
-
-      if (existing) {
-        results.updated += 1
-        feedResult.updated += 1
+        results.failed += rows.length
+        feedResult.failed += rows.length
+        results.errors.push(`${feed.locale}: ${error.message}`)
       } else {
-        results.inserted += 1
-        feedResult.inserted += 1
+        for (const row of rows) {
+          if (existingIds.has(row.external_id)) {
+            results.updated += 1
+            feedResult.updated += 1
+          } else {
+            results.inserted += 1
+            feedResult.inserted += 1
+          }
+        }
       }
     }
 
@@ -109,6 +116,39 @@ export async function importConversationArticles() {
   }
 
   return results
+}
+
+// The upsert bumps updated_at on every imported row, so max(updated_at)
+// doubles as the last-import timestamp — no extra bookkeeping table needed.
+const ARTICLES_REFRESH_TTL_MS = 30 * 60 * 1000
+
+let refreshInFlight: Promise<void> | null = null
+
+export function refreshConversationArticlesIfStale(): Promise<void> {
+  if (refreshInFlight) return refreshInFlight
+
+  refreshInFlight = (async () => {
+    try {
+      const supabase = createServiceRoleClient()
+      const { data } = await supabase
+        .from('articles')
+        .select('updated_at')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const lastImportedAt = data?.updated_at ? new Date(data.updated_at).getTime() : 0
+      if (Date.now() - lastImportedAt < ARTICLES_REFRESH_TTL_MS) return
+
+      await importConversationArticles()
+    } catch (error) {
+      console.error('[articles] feed refresh failed:', error)
+    } finally {
+      refreshInFlight = null
+    }
+  })()
+
+  return refreshInFlight
 }
 
 export async function listArticles(
