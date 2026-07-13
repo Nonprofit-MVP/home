@@ -48,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="antialiased bg-[#0a0a0a] text-zinc-100 min-h-screen">
+      <body className="antialiased bg-[#0a0a0a] text-zinc-100 min-h-screen flex flex-col">
         <GoogleAnalytics />
         <Suspense fallback={null}>
           <NavigationProgress />
@@ -58,7 +58,7 @@ export default function RootLayout({
         </Suspense>
         <ReaderModeBanner />
         <Navbar />
-        <main>{children}</main>
+        <main className="flex-1">{children}</main>
         <Footer />
       </body>
     </html>

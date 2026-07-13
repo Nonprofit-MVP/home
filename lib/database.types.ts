@@ -277,6 +277,73 @@ export interface Database {
           following_id?: string
         }
       }
+      agent_conversations: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          context: Json
+          provider: string | null
+          model: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string
+          context?: Json
+          provider?: string | null
+          model?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          context?: Json
+          provider?: string | null
+          model?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      agent_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          role: 'user' | 'assistant'
+          content: string
+          tool_calls: Json
+          sources: Json
+          provider: string | null
+          model: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          role: 'user' | 'assistant'
+          content?: string
+          tool_calls?: Json
+          sources?: Json
+          provider?: string | null
+          model?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          role?: 'user' | 'assistant'
+          content?: string
+          tool_calls?: Json
+          sources?: Json
+          provider?: string | null
+          model?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {}
     Functions: {}

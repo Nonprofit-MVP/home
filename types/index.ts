@@ -125,6 +125,62 @@ export interface ChatMessage {
   content: string;
 }
 
+// AI Research Agent
+export interface AgentSource {
+  title: string;
+  url?: string;
+  doi?: string;
+  year?: number | string | null;
+  venue?: string | null;
+  authors?: string[];
+}
+
+export interface ToolTraceEntry {
+  name: string;
+  args: Record<string, unknown>;
+  ok: boolean;
+  ms: number;
+}
+
+export interface AgentToolEvent {
+  id: string;
+  name: string;
+  args?: Record<string, unknown>;
+  status: 'running' | 'done';
+  ok?: boolean;
+  ms?: number;
+}
+
+export interface AgentConversation {
+  id: string;
+  title: string;
+  context: { type?: 'paper'; paper_id?: string };
+  provider?: string | null;
+  model?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  tool_calls?: ToolTraceEntry[];
+  sources?: AgentSource[];
+  provider?: string | null;
+  model?: string | null;
+  created_at: string;
+}
+
+export type AgentStreamEvent =
+  | { type: 'meta'; conversationId: string; provider: string; model: string }
+  | { type: 'token'; text: string }
+  | { type: 'reasoning'; text: string }
+  | { type: 'tool'; id: string; name: string; args?: Record<string, unknown>; status: 'running' | 'done'; ok?: boolean; ms?: number }
+  | { type: 'sources'; sources: AgentSource[] }
+  | { type: 'done'; ok: boolean; messageId?: string | null; stopReason?: string }
+  | { type: 'error'; message: string };
+
 export interface PaperFeedItem extends Paper {
   isBookmarked?: boolean;
 }

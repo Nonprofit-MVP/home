@@ -1,15 +1,28 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Loader2, Cpu, ChevronDown } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Send, Loader2, Cpu } from 'lucide-react'
 import { PaperCard } from '@/components/ui/PaperCard'
+import { Markdown } from '@/components/research/Markdown'
+import { ToolActivity } from '@/components/research/ToolActivity'
+import { SourceList } from '@/components/research/SourceList'
+import { LoaderDots } from '@/components/research/LoaderDots'
+import { useAgentStream } from '@/components/research/useAgentStream'
+import { createClient } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
-import type { ChatMessage, Paper } from '@/types'
+import type { Paper, AgentSource, AgentToolEvent } from '@/types'
 
 interface AISidebarProps {
   paper: Paper
   relatedPapers?: Paper[]
+}
+
+interface SidebarMessage {
+  role: 'user' | 'assistant'
+  content: string
+  reasoning?: string
+  toolEvents?: AgentToolEvent[]
+  sources?: AgentSource[]
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -22,14 +35,30 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
   const [tldr, setTldr] = useState(paper.tldr || '')
   const [tldrMode, setTldrMode] = useState<'technical' | 'plain'>('technical')
   const [tldrLoading, setTldrLoading] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<SidebarMessage[]>([])
   const [input, setInput] = useState('')
-  const [streaming, setStreaming] = useState(false)
+  const [legacyStreaming, setLegacyStreaming] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [loadedRelated, setLoadedRelated] = useState<Paper[]>(relatedPapers)
   const [relatedLoading, setRelatedLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const loadedRef = useRef(false)
+  // Persists the agent thread across sends — it also shows up in /research.
+  const conversationIdRef = useRef<string | null>(null)
+  const { sendMessage: sendAgentMessage, streaming: agentStreaming } = useAgentStream()
+
+  const streaming = legacyStreaming || agentStreaming
+
+  // Logged-in users get the full research agent (tools + sources); guests keep
+  // the lightweight paper-context chat.
+  useEffect(() => {
+    createClient()
+      .auth.getSession()
+      .then(({ data }: { data: { session: unknown } }) => {
+        if (data.session) setIsLoggedIn(true)
+      })
+  }, [])
 
   // Lazy load on visibility
   useEffect(() => {
@@ -95,27 +124,78 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
     }
   }
 
-  const sendMessage = async (question?: string) => {
-    const content = question || input.trim()
-    if (!content || streaming) return
+  const patchLastAssistant = (patch: (msg: SidebarMessage) => SidebarMessage) => {
+    setMessages(prev => {
+      const updated = [...prev]
+      const last = updated[updated.length - 1]
+      if (last?.role === 'assistant') {
+        updated[updated.length - 1] = patch(last)
+      }
+      return updated
+    })
+  }
 
-    const userMsg: ChatMessage = { role: 'user', content }
-    const newMessages = [...messages, userMsg]
-    setMessages(newMessages)
-    setInput('')
-    setStreaming(true)
-
+  const sendViaAgent = (content: string) => {
     const paperContext = `Title: ${paper.title}\n\nAbstract: ${paper.abstract}\n\nTL;DR: ${paper.tldr || ''}`
-    const assistantMsg: ChatMessage = { role: 'assistant', content: '' }
-    setMessages(prev => [...prev, assistantMsg])
+    sendAgentMessage(
+      {
+        conversationId: conversationIdRef.current ?? undefined,
+        message: content,
+        context: { type: 'paper', paperId: paper.id, paperContext },
+      },
+      {
+        onEvent: event => {
+          switch (event.type) {
+            case 'meta':
+              conversationIdRef.current = event.conversationId
+              break
+            case 'token':
+              patchLastAssistant(msg => ({ ...msg, content: msg.content + event.text }))
+              break
+            case 'reasoning':
+              patchLastAssistant(msg => ({ ...msg, reasoning: (msg.reasoning || '') + event.text }))
+              break
+            case 'tool':
+              patchLastAssistant(msg => {
+                const events: AgentToolEvent[] = [...(msg.toolEvents || [])]
+                const idx = events.findIndex(e => e.id === event.id && e.name === event.name)
+                const entry: AgentToolEvent = {
+                  id: event.id,
+                  name: event.name,
+                  status: event.status,
+                  ok: event.ok,
+                  ms: event.ms,
+                }
+                if (idx >= 0) events[idx] = { ...events[idx], ...entry }
+                else events.push(entry)
+                return { ...msg, toolEvents: events }
+              })
+              break
+            case 'sources':
+              patchLastAssistant(msg => ({ ...msg, sources: event.sources }))
+              break
+            case 'error':
+              patchLastAssistant(msg => ({
+                ...msg,
+                content: msg.content || 'Sorry, I encountered an error. Please try again.',
+              }))
+              break
+          }
+        },
+      }
+    )
+  }
 
+  const sendViaLegacy = async (content: string, history: SidebarMessage[]) => {
+    setLegacyStreaming(true)
+    const paperContext = `Title: ${paper.title}\n\nAbstract: ${paper.abstract}\n\nTL;DR: ${paper.tldr || ''}`
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paperId: paper.id,
-          messages: newMessages,
+          messages: history.map(m => ({ role: m.role, content: m.content })),
           paperContext,
         }),
       })
@@ -138,27 +218,35 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
               const parsed = JSON.parse(data)
               if (parsed.text) {
                 fullText += parsed.text
-                setMessages(prev => {
-                  const updated = [...prev]
-                  updated[updated.length - 1] = { role: 'assistant', content: fullText }
-                  return updated
-                })
+                patchLastAssistant(msg => ({ ...msg, content: fullText }))
               }
             } catch {}
           }
         }
       }
     } catch (err) {
-      setMessages(prev => {
-        const updated = [...prev]
-        updated[updated.length - 1] = {
-          role: 'assistant',
-          content: 'Sorry, I encountered an error. Please try again.',
-        }
-        return updated
-      })
+      patchLastAssistant(msg => ({
+        ...msg,
+        content: 'Sorry, I encountered an error. Please try again.',
+      }))
     } finally {
-      setStreaming(false)
+      setLegacyStreaming(false)
+    }
+  }
+
+  const sendMessage = (question?: string) => {
+    const content = question || input.trim()
+    if (!content || streaming) return
+
+    const userMsg: SidebarMessage = { role: 'user', content }
+    const history = [...messages, userMsg]
+    setMessages([...history, { role: 'assistant', content: '', toolEvents: [], sources: [] }])
+    setInput('')
+
+    if (isLoggedIn) {
+      sendViaAgent(content)
+    } else {
+      sendViaLegacy(content, history)
     }
   }
 
@@ -207,8 +295,13 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
       {/* Chat */}
       <div className="bg-[#111111] border border-white/8 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#F5A3FF] animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#F5A3FF]" />
           <span className="text-xs font-mono font-medium text-zinc-300">Ask this paper</span>
+          {isLoggedIn && (
+            <span className="ml-auto text-[10px] font-mono text-zinc-700 border border-white/8 rounded px-1.5 py-px">
+              agent · searches the literature
+            </span>
+          )}
         </div>
 
         {/* Messages */}
@@ -224,9 +317,32 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
                     : 'text-zinc-400'
                 )}
               >
-                {msg.content}
-                {streaming && i === messages.length - 1 && msg.role === 'assistant' && (
-                  <span className="inline-block w-1 h-3 bg-[#F5A3FF] ml-0.5 animate-pulse" />
+                {msg.role === 'assistant' ? (
+                  <>
+                    {msg.reasoning && !msg.content && (
+                      <details className="mb-1.5 text-[11px]">
+                        <summary className="cursor-pointer font-mono text-zinc-500 hover:text-zinc-300">
+                          {streaming && i === messages.length - 1 ? 'Thinking…' : 'Reasoning'}
+                        </summary>
+                        <div className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap text-zinc-600 leading-relaxed">
+                          {msg.reasoning}
+                        </div>
+                      </details>
+                    )}
+                    {msg.toolEvents && msg.toolEvents.length > 0 && (
+                      <ToolActivity events={msg.toolEvents} compact />
+                    )}
+                    {msg.content ? (
+                      <Markdown content={msg.content} />
+                    ) : streaming && i === messages.length - 1 && !msg.reasoning ? (
+                      <LoaderDots label="Thinking…" />
+                    ) : null}
+                    {msg.sources && msg.sources.length > 0 && (
+                      <SourceList sources={msg.sources} limit={3} />
+                    )}
+                  </>
+                ) : (
+                  msg.content
                 )}
               </div>
             ))}

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Search, Bell, ChevronDown, X, Menu, LayoutDashboard, User, LogOut, FileText } from 'lucide-react'
+import { Search, ChevronDown, X, Menu, LayoutDashboard, User, LogOut, FileText, Sparkles } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -195,13 +195,19 @@ export function Navbar() {
             )}
           </div>
 
+          {/* Research assistant */}
+          <Link
+            href="/research"
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-mono text-zinc-400 hover:text-[#F5A3FF] hover:bg-[#F5A3FF]/5 transition-colors shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Research
+          </Link>
+
           {/* Right side */}
           <div className="flex items-center gap-2 ml-auto">
             {user ? (
               <>
-                <button className="hidden md:flex p-1.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors">
-                  <Bell className="w-4 h-4" />
-                </button>
                 <div ref={dropdownRef} className="hidden md:block relative">
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -216,6 +222,7 @@ export function Navbar() {
                         <p className="text-xs font-mono text-zinc-300 font-medium">{user.name}</p>
                         <p className="text-[11px] text-zinc-600">{user.email}</p>
                       </div>
+                      <Link href="/research" onClick={() => setDropdownOpen(false)} className="block px-3 py-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors">Research Assistant</Link>
                       <Link href="/dashboard" onClick={() => setDropdownOpen(false)} className="block px-3 py-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors">Dashboard</Link>
                       <Link href={`/profile/${user.username}`} onClick={() => setDropdownOpen(false)} className="block px-3 py-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors">Profile</Link>
                       <button onClick={handleSignOut} className="w-full text-left px-3 py-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors border-t border-white/5">Sign out</button>
@@ -309,6 +316,14 @@ export function Navbar() {
               >
                 <FileText className="w-4 h-4" />
                 Browse Papers
+              </Link>
+              <Link
+                href="/research"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors font-mono"
+              >
+                <Sparkles className="w-4 h-4" />
+                Research Assistant
               </Link>
               {user && (
                 <>

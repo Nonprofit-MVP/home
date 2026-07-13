@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "articles:setup": "node scripts/setup-articles.mjs",
-    "articles:import": "node scripts/setup-articles.mjs import"
+    "articles:import": "node scripts/setup-articles.mjs import",
+    "agent:setup": "node scripts/setup-agent.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",
@@ -16,8 +17,10 @@
     "@supabase/supabase-js": "^2.99.2",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dompurify": "^3.4.12",
     "dotenv": "^17.4.2",
     "lucide-react": "^0.577.0",
+    "marked": "^18.0.6",
     "next": "14.2.35",
     "pg": "^8.21.0",
     "react": "^18",
@@ -25,6 +28,7 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@types/dompurify": "^3.0.5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

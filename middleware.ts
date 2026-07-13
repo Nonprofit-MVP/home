@@ -29,7 +29,8 @@ export async function middleware(request: NextRequest) {
 
   // Protect dashboard routes
   const isDashboard = request.nextUrl.pathname.startsWith('/dashboard') ||
-                      request.nextUrl.pathname.startsWith('/papers/submit')
+                      request.nextUrl.pathname.startsWith('/papers/submit') ||
+                      request.nextUrl.pathname.startsWith('/research')
 
   if (!user && isDashboard) {
     const loginUrl = request.nextUrl.clone()
