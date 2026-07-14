@@ -1,4 +1,4 @@
-import { anthropic, CLAUDE_MODEL } from '@/lib/anthropic'
+import { anthropic, CLAUDE_MODEL, anthropicKeyStatus } from '@/lib/anthropic'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
@@ -6,11 +6,9 @@ export async function POST(request: Request) {
   const { title, abstract, tags } = await request.json()
 
   try {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json(
-        { error: 'Missing ANTHROPIC_API_KEY (set it in your server environment / .env.local and restart the dev server).' },
-        { status: 500 }
-      )
+    const keyStatus = anthropicKeyStatus()
+    if (!keyStatus.ok) {
+      return NextResponse.json({ error: keyStatus.message }, { status: 503 })
     }
 
     // Use Claude to extract key concepts

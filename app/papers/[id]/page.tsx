@@ -14,7 +14,7 @@ import { CiteButton } from './CiteButton'
 import { ShareButton } from './ShareButton'
 import type { Paper, Review, ReplicationAttempt, PaperVersion } from '@/types'
 import { formatDate, formatAuthors } from '@/lib/utils'
-import { ExternalLink, FileText } from 'lucide-react'
+import { ExternalLink, FileText, Sparkles } from 'lucide-react'
 
 interface PageProps {
   params: { id: string }
@@ -146,6 +146,12 @@ export default async function PaperPage({ params }: PageProps) {
           </div>
 
           <div className="flex flex-wrap gap-2 mb-6">
+            <Link href={`/papers/${paper.id}/read`}>
+              <Button variant="primary" size="sm">
+                <Sparkles className="w-3.5 h-3.5" />
+                Read with AI
+              </Button>
+            </Link>
             {paper.source_url && (
               <a href={paper.source_url} target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" size="sm">
@@ -167,7 +173,7 @@ export default async function PaperPage({ params }: PageProps) {
             <BookmarkButton paperId={paper.id} isLoggedIn={!!currentUser} initialBookmarked={isBookmarked} />
           </div>
 
-          <div className="mb-6">
+          <div id="abstract" className="mb-6 scroll-mt-20">
             <h2 className="text-[11px] font-mono text-zinc-600 uppercase tracking-widest mb-3">Abstract</h2>
             <p className="text-zinc-300 leading-relaxed text-sm">{paper.abstract}</p>
           </div>

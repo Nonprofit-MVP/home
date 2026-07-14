@@ -1,4 +1,4 @@
-import { anthropic, CLAUDE_MODEL } from '@/lib/anthropic'
+import { anthropic, CLAUDE_MODEL, anthropicKeyStatus } from '@/lib/anthropic'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -8,11 +8,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing title or abstract' }, { status: 400 })
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: 'Missing ANTHROPIC_API_KEY (set it in your server environment / .env.local and restart the dev server).' },
-      { status: 500 }
-    )
+  const keyStatus = anthropicKeyStatus()
+  if (!keyStatus.ok) {
+    return NextResponse.json({ error: keyStatus.message }, { status: 503 })
   }
 
   const systemPrompt = mode === 'plain'

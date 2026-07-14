@@ -17,7 +17,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          'inline-flex items-center justify-center gap-2 rounded font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#F5A3FF]/30 focus:ring-offset-1 focus:ring-offset-[#0a0a0a]',
+          'inline-flex items-center justify-center gap-2 rounded font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F5A3FF]/15 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0a0a0a]',
           size === 'sm' && 'px-3 py-1.5 text-xs',
           size === 'md' && 'px-4 py-2 text-sm',
           size === 'lg' && 'px-6 py-3 text-base',

@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Send, Loader2, Cpu } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import Link from 'next/link'
+import { Send, Loader2, Cpu, Sparkles, BookOpen } from 'lucide-react'
 import { PaperCard } from '@/components/ui/PaperCard'
+import { CitedText } from '@/components/paper/CitedText'
+import { buildPaperSources } from '@/lib/paper-sources'
 import { Markdown } from '@/components/research/Markdown'
 import { ToolActivity } from '@/components/research/ToolActivity'
 import { SourceList } from '@/components/research/SourceList'
@@ -41,6 +44,8 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [loadedRelated, setLoadedRelated] = useState<Paper[]>(relatedPapers)
   const [relatedLoading, setRelatedLoading] = useState(false)
+  const [activeCite, setActiveCite] = useState<number | null>(null)
+  const sources = useMemo(() => buildPaperSources(paper), [paper])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const loadedRef = useRef(false)
@@ -59,6 +64,18 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
         if (data.session) setIsLoggedIn(true)
       })
   }, [])
+
+  // A citation click scrolls to the abstract on the page and flashes it.
+  const jumpToAbstract = (n: number) => {
+    setActiveCite(n)
+    const el = document.getElementById('abstract')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.classList.add('ai-cite-flash')
+      setTimeout(() => el.classList.remove('ai-cite-flash'), 2000)
+    }
+    setTimeout(() => setActiveCite(null), 2000)
+  }
 
   // Lazy load on visibility
   useEffect(() => {
@@ -197,6 +214,7 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
           paperId: paper.id,
           messages: history.map(m => ({ role: m.role, content: m.content })),
           paperContext,
+          sources: sources.map(s => s.text),
         }),
       })
 
@@ -252,6 +270,23 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
 
   return (
     <div ref={sidebarRef} className="space-y-4">
+      {/* Reader workspace CTA */}
+      <Link
+        href={`/papers/${paper.id}/read`}
+        className="group flex items-center gap-3 bg-gradient-to-br from-[#F5A3FF]/10 to-[#F5A3FF]/[0.02] border border-[#F5A3FF]/20 hover:border-[#F5A3FF]/40 rounded-xl p-3.5 transition-all"
+      >
+        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#F5A3FF]/15 text-[#F5A3FF] shrink-0">
+          <BookOpen className="w-4 h-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-sm font-medium text-white">
+            Read with AI
+            <Sparkles className="w-3 h-3 text-[#F5A3FF]" />
+          </div>
+          <p className="text-[11px] text-zinc-500 font-mono">split-screen · cite sources · study tools</p>
+        </div>
+      </Link>
+
       {/* AI Summary */}
       <div className="bg-[#111111] border border-white/8 rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
@@ -333,7 +368,16 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
                       <ToolActivity events={msg.toolEvents} compact />
                     )}
                     {msg.content ? (
-                      <Markdown content={msg.content} />
+                      isLoggedIn ? (
+                        <Markdown content={msg.content} />
+                      ) : (
+                        <CitedText
+                          text={msg.content}
+                          maxCitation={sources.length}
+                          onCite={jumpToAbstract}
+                          activeCitation={activeCite}
+                        />
+                      )
                     ) : streaming && i === messages.length - 1 && !msg.reasoning ? (
                       <LoaderDots label="Thinking…" />
                     ) : null}

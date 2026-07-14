@@ -107,7 +107,6 @@ body {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
-
 /* Research workspace runs as a fixed app-shell (viewport height, its own
    internal scroll) — suppress window scroll and the global footer there. */
 body.research-shell {
@@ -245,4 +244,15 @@ body.research-shell > footer {
 @media (prefers-reduced-motion: reduce) {
   .loader-dots > span { animation: loader-dot-fade 1.4s ease-in-out infinite; }
   @keyframes loader-dot-fade { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+}
+
+/* Flash the abstract when an AI citation is clicked */
+.ai-cite-flash {
+  animation: aiCiteFlash 2s ease-out;
+  border-radius: 0.5rem;
+}
+
+@keyframes aiCiteFlash {
+  0%   { background-color: rgba(245, 163, 255, 0.18); box-shadow: 0 0 0 4px rgba(245, 163, 255, 0.12); }
+  100% { background-color: transparent; box-shadow: 0 0 0 4px transparent; }
 }
