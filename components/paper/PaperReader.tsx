@@ -9,7 +9,13 @@ import {
 import { cn } from '@/lib/utils'
 import { buildPaperSources } from '@/lib/paper-sources'
 import { CitedText } from '@/components/paper/CitedText'
-import type { ChatMessage, Paper } from '@/types'
+import { Markdown } from '@/components/research/Markdown'
+import { ToolActivity } from '@/components/research/ToolActivity'
+import { SourceList } from '@/components/research/SourceList'
+import { LoaderDots } from '@/components/research/LoaderDots'
+import { useAgentStream } from '@/components/research/useAgentStream'
+import { createClient } from '@/lib/supabase'
+import type { Paper, AgentSource, AgentToolEvent } from '@/types'
 import type { StudyTools } from '@/app/api/ai/study/route'
 
 interface PaperReaderProps {
@@ -27,12 +33,21 @@ const SUGGESTED = [
 type RightTab = 'chat' | 'study'
 type DocView = 'text' | 'pdf'
 
+interface ReaderMessage {
+  role: 'user' | 'assistant'
+  content: string
+  reasoning?: string
+  toolEvents?: AgentToolEvent[]
+  sources?: AgentSource[]
+}
+
 export function PaperReader({ paper, pdfUrl }: PaperReaderProps) {
   const sources = useMemo(() => buildPaperSources(paper), [paper])
 
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<ReaderMessage[]>([])
   const [input, setInput] = useState('')
-  const [streaming, setStreaming] = useState(false)
+  const [legacyStreaming, setLegacyStreaming] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [activeCite, setActiveCite] = useState<number | null>(null)
   const [rightTab, setRightTab] = useState<RightTab>('chat')
   const [docView, setDocView] = useState<DocView>('text')
@@ -48,33 +63,94 @@ export function PaperReader({ paper, pdfUrl }: PaperReaderProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const docTextRef = useRef<HTMLDivElement>(null)
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Persists the agent thread across sends — it also shows up in /research.
+  const conversationIdRef = useRef<string | null>(null)
+  const { sendMessage: sendAgentMessage, streaming: agentStreaming } = useAgentStream()
+  const streaming = legacyStreaming || agentStreaming
+
+  // Logged-in users get the full research agent (tools + literature sources);
+  // guests keep the lightweight grounded paper-context chat.
+  useEffect(() => {
+    createClient()
+      .auth.getSession()
+      .then(({ data }: { data: { session: unknown } }) => {
+        if (data.session) setIsLoggedIn(true)
+      })
+  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // ---- Grounded chat ----
-  const sendMessage = useCallback(async (question?: string) => {
-    const content = (question ?? input).trim()
-    if (!content || streaming) return
+  // ---- Chat: same agent architecture as the sidebar/research workspace ----
+  const patchLastAssistant = (patch: (msg: ReaderMessage) => ReaderMessage) => {
+    setMessages(prev => {
+      const updated = [...prev]
+      const last = updated[updated.length - 1]
+      if (last?.role === 'assistant') updated[updated.length - 1] = patch(last)
+      return updated
+    })
+  }
 
-    setSelection(null)
-    const newMessages: ChatMessage[] = [...messages, { role: 'user', content }]
-    setMessages([...newMessages, { role: 'assistant', content: '' }])
-    setInput('')
-    setStreaming(true)
-    setRightTab('chat')
+  const paperContext = () =>
+    `Title: ${paper.title}\n\nAbstract: ${paper.abstract}\n\nTL;DR: ${paper.tldr || ''}`
 
-    const paperContext = `Title: ${paper.title}\n\nAbstract: ${paper.abstract}\n\nTL;DR: ${paper.tldr || ''}`
+  // Logged-in path: the tool-using research agent (OpenRouter et al.).
+  const sendViaAgent = (content: string) => {
+    sendAgentMessage(
+      {
+        conversationId: conversationIdRef.current ?? undefined,
+        message: content,
+        context: { type: 'paper', paperId: paper.id, paperContext: paperContext() },
+      },
+      {
+        onEvent: event => {
+          switch (event.type) {
+            case 'meta':
+              conversationIdRef.current = event.conversationId
+              break
+            case 'token':
+              patchLastAssistant(msg => ({ ...msg, content: msg.content + event.text }))
+              break
+            case 'reasoning':
+              patchLastAssistant(msg => ({ ...msg, reasoning: (msg.reasoning || '') + event.text }))
+              break
+            case 'reset':
+              patchLastAssistant(msg => ({ ...msg, content: '', reasoning: '' }))
+              break
+            case 'tool':
+              patchLastAssistant(msg => {
+                const events: AgentToolEvent[] = [...(msg.toolEvents || [])]
+                const idx = events.findIndex(e => e.id === event.id && e.name === event.name)
+                const entry: AgentToolEvent = { id: event.id, name: event.name, status: event.status, ok: event.ok, ms: event.ms }
+                if (idx >= 0) events[idx] = { ...events[idx], ...entry }
+                else events.push(entry)
+                return { ...msg, toolEvents: events }
+              })
+              break
+            case 'sources':
+              patchLastAssistant(msg => ({ ...msg, sources: event.sources }))
+              break
+            case 'error':
+              patchLastAssistant(msg => ({ ...msg, content: msg.content || 'Sorry, I encountered an error. Please try again.' }))
+              break
+          }
+        },
+      }
+    )
+  }
 
+  // Guest path: grounded single-shot chat with [n] citations into the abstract.
+  const sendViaLegacy = async (history: ReaderMessage[]) => {
+    setLegacyStreaming(true)
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paperId: paper.id,
-          messages: newMessages,
-          paperContext,
+          messages: history.map(m => ({ role: m.role, content: m.content })),
+          paperContext: paperContext(),
           sources: sources.map(s => s.text),
         }),
       })
@@ -82,7 +158,6 @@ export function PaperReader({ paper, pdfUrl }: PaperReaderProps) {
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let fullText = ''
-
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -95,25 +170,31 @@ export function PaperReader({ paper, pdfUrl }: PaperReaderProps) {
             const parsed = JSON.parse(data)
             if (parsed.text) {
               fullText += parsed.text
-              setMessages(prev => {
-                const updated = [...prev]
-                updated[updated.length - 1] = { role: 'assistant', content: fullText }
-                return updated
-              })
+              patchLastAssistant(msg => ({ ...msg, content: fullText }))
             }
           } catch {}
         }
       }
     } catch {
-      setMessages(prev => {
-        const updated = [...prev]
-        updated[updated.length - 1] = { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }
-        return updated
-      })
+      patchLastAssistant(msg => ({ ...msg, content: 'Sorry, I encountered an error. Please try again.' }))
     } finally {
-      setStreaming(false)
+      setLegacyStreaming(false)
     }
-  }, [input, streaming, messages, paper, sources])
+  }
+
+  const sendMessage = (question?: string) => {
+    const content = (question ?? input).trim()
+    if (!content || streaming) return
+
+    setSelection(null)
+    setRightTab('chat')
+    const history: ReaderMessage[] = [...messages, { role: 'user', content }]
+    setMessages([...history, { role: 'assistant', content: '', toolEvents: [], sources: [] }])
+    setInput('')
+
+    if (isLoggedIn) sendViaAgent(content)
+    else sendViaLegacy(history)
+  }
 
   // ---- Citation -> highlight source in the document ----
   const jumpToSource = useCallback((n: number) => {
@@ -318,6 +399,7 @@ export function PaperReader({ paper, pdfUrl }: PaperReaderProps) {
             <ChatPanel
               messages={messages}
               streaming={streaming}
+              isLoggedIn={isLoggedIn}
               input={input}
               setInput={setInput}
               onSend={sendMessage}
@@ -382,10 +464,11 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
 }
 
 function ChatPanel({
-  messages, streaming, input, setInput, onSend, onCite, activeCite, maxCitation, inputRef, messagesEndRef,
+  messages, streaming, isLoggedIn, input, setInput, onSend, onCite, activeCite, maxCitation, inputRef, messagesEndRef,
 }: {
-  messages: ChatMessage[]
+  messages: ReaderMessage[]
   streaming: boolean
+  isLoggedIn: boolean
   input: string
   setInput: (v: string) => void
   onSend: (q?: string) => void
@@ -402,7 +485,9 @@ function ChatPanel({
           <div className="h-full flex flex-col justify-center">
             <div className="flex items-center gap-2 mb-4 justify-center text-zinc-600">
               <Cpu className="w-4 h-4 text-[#F5A3FF]" />
-              <span className="text-xs font-mono">Ask anything — answers cite the abstract</span>
+              <span className="text-xs font-mono">
+                {isLoggedIn ? 'Agent · searches the literature as it answers' : 'Ask anything — answers cite the abstract'}
+              </span>
             </div>
             <div className="grid gap-1.5 max-w-md mx-auto w-full">
               {SUGGESTED.map(q => (
@@ -426,9 +511,37 @@ function ChatPanel({
                   </div>
                 ) : (
                   <div className="text-zinc-300 pr-2">
-                    <CitedText text={msg.content} maxCitation={maxCitation} onCite={onCite} activeCitation={activeCite} />
-                    {streaming && i === messages.length - 1 && (
-                      <span className="inline-block w-1 h-3.5 bg-[#F5A3FF] ml-0.5 align-middle animate-pulse" />
+                    {isLoggedIn ? (
+                      <>
+                        {msg.reasoning && !msg.content && (
+                          <details className="mb-1.5 text-[11px]">
+                            <summary className="cursor-pointer font-mono text-zinc-500 hover:text-zinc-300">
+                              {streaming && i === messages.length - 1 ? 'Thinking…' : 'Reasoning'}
+                            </summary>
+                            <div className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap text-zinc-600 leading-relaxed">
+                              {msg.reasoning}
+                            </div>
+                          </details>
+                        )}
+                        {msg.toolEvents && msg.toolEvents.length > 0 && (
+                          <ToolActivity events={msg.toolEvents} compact />
+                        )}
+                        {msg.content ? (
+                          <Markdown content={msg.content} />
+                        ) : streaming && i === messages.length - 1 && !msg.reasoning ? (
+                          <LoaderDots label="Thinking…" />
+                        ) : null}
+                        {msg.sources && msg.sources.length > 0 && (
+                          <SourceList sources={msg.sources} limit={4} />
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <CitedText text={msg.content} maxCitation={maxCitation} onCite={onCite} activeCitation={activeCite} />
+                        {streaming && i === messages.length - 1 && (
+                          <span className="inline-block w-1 h-3.5 bg-[#F5A3FF] ml-0.5 align-middle animate-pulse" />
+                        )}
+                      </>
                     )}
                   </div>
                 )}

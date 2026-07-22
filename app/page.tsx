@@ -1,17 +1,14 @@
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { refreshConversationArticlesIfStale } from '@/lib/articles'
+import { scheduleConversationArticlesRefresh } from '@/lib/articles'
 import { HeroSection } from '@/components/home/HeroSection'
-import { FeedColumn } from '@/components/home/FeedColumn'
-import { TagFilterBar } from '@/components/home/TagFilterBar'
-import { CommunitySection } from '@/components/home/CommunitySection'
 import { HomeFeedClient } from '@/components/home/HomeFeedClient'
 import type { Article, Paper, User, ReplicationAttempt } from '@/types'
 
 export const revalidate = 60 // ISR: revalidate every 60s
 
 export default async function HomePage() {
-  // Pull the newest feed entries into the DB when the last import is stale
-  await refreshConversationArticlesIfStale()
+  // Refresh feeds in the background — never block TTFB on a multi-feed import
+  scheduleConversationArticlesRefresh()
 
   const supabase = await createServerSupabaseClient()
 

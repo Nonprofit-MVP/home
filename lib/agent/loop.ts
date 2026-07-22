@@ -129,6 +129,12 @@ export async function runAgentLoop(opts: AgentLoopOpts): Promise<AgentLoopResult
       tool_calls: result.toolCalls,
     })
 
+    // This turn only prepared tool calls — its streamed prose (and any harmony
+    // role markers a reasoning model leaks, e.g. gpt-oss's "assistant") is not
+    // the answer. Tell the client to drop it so the next turn starts clean; the
+    // accumulated tool activity and sources are kept.
+    emit({ type: 'reset' })
+
     const toolResults = await Promise.all(
       result.toolCalls.map(async (call): Promise<OAIMessage> => {
         const args = parseArgs(call)

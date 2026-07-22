@@ -110,6 +110,9 @@ export function ResearchWorkspace({ initialConversations }: ResearchWorkspacePro
               case 'reasoning':
                 patchAssistant(msg => ({ ...msg, reasoning: (msg.reasoning || '') + event.text }))
                 break
+              case 'reset':
+                patchAssistant(msg => ({ ...msg, content: '', reasoning: '' }))
+                break
               case 'tool':
                 patchAssistant(msg => {
                   const events: AgentToolEvent[] = [...(msg.toolEvents || [])]

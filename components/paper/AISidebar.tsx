@@ -172,6 +172,9 @@ export function AISidebar({ paper, relatedPapers = [] }: AISidebarProps) {
             case 'reasoning':
               patchLastAssistant(msg => ({ ...msg, reasoning: (msg.reasoning || '') + event.text }))
               break
+            case 'reset':
+              patchLastAssistant(msg => ({ ...msg, content: '', reasoning: '' }))
+              break
             case 'tool':
               patchLastAssistant(msg => {
                 const events: AgentToolEvent[] = [...(msg.toolEvents || [])]

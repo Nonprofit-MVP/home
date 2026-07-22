@@ -70,61 +70,52 @@ export function HeroSection() {
             </div>
 
             <div className="relative mx-auto max-w-3xl mt-12 rounded-xl border border-white/10 bg-white/[0.02] px-5 py-5 sm:px-6 sm:py-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-1 h-4 rounded-sm bg-[#F5A3FF]/40 shrink-0" />
-                  <span className="font-mono text-xs font-medium tracking-wide text-zinc-400">
-                    Journality Mentorship
-                  </span>
-                </div>
+              <div className="text-left">
+                <h2 className="font-mono text-base sm:text-lg font-semibold text-zinc-200 mb-2 leading-snug">
+                  Free research mentorship for everyone.
+                </h2>
 
-                <div className="text-left">
-                  <h2 className="font-mono text-base sm:text-lg font-semibold text-zinc-200 mb-2 leading-snug">
-                    Free research mentorship for everyone.
-                  </h2>
+                <p className="text-zinc-500 text-sm sm:text-base leading-relaxed mb-3">
+                  A community for researchers at every stage, from high school
+                  students to lifelong learners, that guides you through the
+                  entire research process.
+                </p>
 
-                  <p className="text-zinc-500 text-sm sm:text-base leading-relaxed mb-3">
-                    A community for researchers at every stage, from high school
-                    students to lifelong learners, that guides you through the
-                    entire research process.
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-                    {RESEARCH_STEPS.map((step) => (
-                      <div
-                        key={step.title}
-                        className="rounded-sm border border-white/[0.06] bg-white/[0.02] px-3 py-3"
-                      >
-                        <div className="flex items-center mb-2.5">
-                          <step.icon
-                            className="w-4 h-4 text-[#F5A3FF]"
-                            strokeWidth={1.5}
-                          />
-                        </div>
-                        <h3 className="font-mono text-xs font-semibold text-zinc-300 mb-1">
-                          {step.title}
-                        </h3>
-                        <p className="text-[11px] sm:text-xs text-zinc-500 leading-relaxed">
-                          {step.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Link
-                    href="https://discord.gg/UF23ddWgDK"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <Button
-                      size="md"
-                      className="font-mono bg-[#5865F2] text-white border border-[#5865F2] hover:bg-[#4752C4] hover:border-[#4752C4] active:bg-[#3c45a5]"
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                  {RESEARCH_STEPS.map((step) => (
+                    <div
+                      key={step.title}
+                      className="rounded-sm border border-white/[0.06] bg-white/[0.02] px-3 py-3"
                     >
-                      <DiscordIcon className="w-4 h-4" />
-                      Join the free Discord
-                    </Button>
-                  </Link>
+                      <div className="flex items-center mb-2.5">
+                        <step.icon
+                          className="w-4 h-4 text-[#F5A3FF]"
+                          strokeWidth={1.5}
+                        />
+                      </div>
+                      <h3 className="font-mono text-xs font-semibold text-zinc-300 mb-1">
+                        {step.title}
+                      </h3>
+                      <p className="text-[11px] sm:text-xs text-zinc-500 leading-relaxed">
+                        {step.description}
+                      </p>
+                    </div>
+                  ))}
                 </div>
+
+                <Link
+                  href="https://discord.gg/UF23ddWgDK"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Button
+                    size="md"
+                    className="font-mono bg-[#5865F2] text-white border border-[#5865F2] hover:bg-[#4752C4] hover:border-[#4752C4] active:bg-[#3c45a5]"
+                  >
+                    <DiscordIcon className="w-4 h-4" />
+                    Join the free Discord
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

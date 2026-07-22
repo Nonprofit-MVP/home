@@ -1,10 +1,30 @@
-import { anthropic, CLAUDE_MODEL, anthropicKeyStatus } from '@/lib/anthropic'
 import { NextResponse } from 'next/server'
+import {
+  resolveProvider,
+  modelFor,
+  streamOpenAICompatible,
+  type OAIMessage,
+} from '@/lib/agent/providers'
+import { streamAnthropic } from '@/lib/agent/anthropic-provider'
 
 export interface StudyTools {
   takeaways: string[]
   glossary: { term: string; definition: string }[]
   flashcards: { question: string; answer: string }[]
+}
+
+// Pull a parseable JSON object out of a model reply that may include markdown
+// fences, // or /* */ comments, or trailing commas.
+function extractJson(content: string): string {
+  let s = content.trim()
+  s = s.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
+  const start = s.indexOf('{')
+  const end = s.lastIndexOf('}')
+  if (start >= 0 && end > start) s = s.slice(start, end + 1)
+  s = s.replace(/\/\*[\s\S]*?\*\//g, '') // block comments
+  s = s.replace(/(^|[^:])\/\/[^\n\r]*/g, '$1') // line comments (skip :// in URLs)
+  s = s.replace(/,(\s*[}\]])/g, '$1') // trailing commas
+  return s.trim()
 }
 
 export async function POST(request: Request) {
@@ -14,10 +34,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing title or abstract' }, { status: 400 })
   }
 
-  const keyStatus = anthropicKeyStatus()
-  if (!keyStatus.ok) {
-    return NextResponse.json({ error: keyStatus.message }, { status: 503 })
+  // Same provider architecture as the agent (OpenRouter etc.) — not the raw
+  // Anthropic SDK. Study tools are a single structured generation, so no tools.
+  const provider = resolveProvider()
+  if (!provider) {
+    return NextResponse.json(
+      { error: 'No AI provider is configured. Add an OpenRouter (or other) API key to .env and restart the dev server.' },
+      { status: 503 }
+    )
   }
+  const model = modelFor(provider)
+  const streamCall = provider.kind === 'anthropic' ? streamAnthropic : streamOpenAICompatible
 
   const systemPrompt = `You are a research study-tools generator. From a paper's title and abstract, produce study aids that help a reader learn the material fast.
 
@@ -30,27 +57,29 @@ Return ONLY valid JSON (no markdown fences, no preamble) matching exactly this s
 
 Be accurate and specific to this paper. Do not include terms or claims not grounded in the provided text.`
 
+  const messages: OAIMessage[] = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: `Title: ${title}\n\nAbstract: ${abstract}${tldr ? `\n\nTL;DR: ${tldr}` : ''}` },
+  ]
+
   try {
-    const message = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 1500,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: `Title: ${title}\n\nAbstract: ${abstract}${tldr ? `\n\nTL;DR: ${tldr}` : ''}`,
-        },
-      ],
+    const result = await streamCall({
+      provider,
+      model,
+      messages,
+      toolChoice: 'none',
+      maxTokens: 3000, // headroom: reasoning models spend budget thinking before the JSON
+      onToken: () => {},
     })
 
-    const raw = message.content[0].type === 'text' ? message.content[0].text : '{}'
-    // Be tolerant of accidental fences or stray text around the JSON.
-    const jsonStr = raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
+    // Reasoning models stream their chain-of-thought separately, so `content`
+    // should be just the JSON — but be tolerant of fences, // comments (which
+    // our schema example uses), and trailing commas.
     let parsed: StudyTools
     try {
-      parsed = JSON.parse(jsonStr)
+      parsed = JSON.parse(extractJson(result.content || ''))
     } catch {
-      return NextResponse.json({ error: 'Failed to parse study tools' }, { status: 502 })
+      return NextResponse.json({ error: 'The model did not return valid study tools. Try again.' }, { status: 502 })
     }
 
     return NextResponse.json({

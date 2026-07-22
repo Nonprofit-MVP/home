@@ -176,6 +176,7 @@ export type AgentStreamEvent =
   | { type: 'meta'; conversationId: string; provider: string; model: string }
   | { type: 'token'; text: string }
   | { type: 'reasoning'; text: string }
+  | { type: 'reset' }
   | { type: 'tool'; id: string; name: string; args?: Record<string, unknown>; status: 'running' | 'done'; ok?: boolean; ms?: number }
   | { type: 'sources'; sources: AgentSource[] }
   | { type: 'done'; ok: boolean; messageId?: string | null; stopReason?: string }

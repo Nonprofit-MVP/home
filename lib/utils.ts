@@ -143,10 +143,14 @@ export const ARTICLE_EDITIONS: { value: ArticleLocale; label: string }[] = [
 ]
 
 export const ARTICLE_TAGS = [
-  'science',
-  'technology',
-  'canada-english',
-  'canada-french',
+  'physics',
+  'chemistry',
+  'astronomy',
+  'computer-science',
+  'mathematics',
+  'biology',
+  'materials-science',
+  'earth-science',
 ] as const
 
 export function formatArticleTag(tag: string): string {

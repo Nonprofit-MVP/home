@@ -1,4 +1,10 @@
-import { anthropic, CLAUDE_MODEL, anthropicKeyStatus } from '@/lib/anthropic'
+import {
+  resolveProvider,
+  modelFor,
+  streamOpenAICompatible,
+  type OAIMessage,
+} from '@/lib/agent/providers'
+import { streamAnthropic } from '@/lib/agent/anthropic-provider'
 import type { ChatMessage } from '@/types'
 
 export async function POST(request: Request) {
@@ -29,42 +35,46 @@ export async function POST(request: Request) {
 Paper context:
 ${paperContext}${sourceBlock}${citationRules}`
 
-  const keyStatus = anthropicKeyStatus()
+  // Guest paper chat uses the same provider architecture as the agent
+  // (OpenRouter etc.), just single-shot with no tools — so it never depends on
+  // the raw Anthropic SDK.
+  const provider = resolveProvider()
+  const model = provider ? modelFor(provider) : ''
+  const streamCall = provider?.kind === 'anthropic' ? streamAnthropic : streamOpenAICompatible
+
+  const oaiMessages: OAIMessage[] = [
+    { role: 'system', content: systemPrompt },
+    ...messages.map(m => ({ role: m.role, content: m.content })),
+  ]
 
   const stream = new ReadableStream({
     async start(controller) {
+      const enc = new TextEncoder()
       // Surface configuration problems as a normal assistant reply so the user
       // sees exactly what's wrong instead of a generic error.
-      if (!keyStatus.ok) {
-        const data = JSON.stringify({ text: `⚠️ ${keyStatus.message}` })
-        controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`))
-        controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
+      if (!provider) {
+        const data = JSON.stringify({
+          text: '⚠️ No AI provider is configured. Add an OpenRouter (or other) API key to .env and restart the dev server.',
+        })
+        controller.enqueue(enc.encode(`data: ${data}\n\n`))
+        controller.enqueue(enc.encode('data: [DONE]\n\n'))
         controller.close()
         return
       }
       try {
-        const response = await anthropic.messages.stream({
-          model: CLAUDE_MODEL,
-          max_tokens: 1024,
-          system: systemPrompt,
-          messages: messages.map(m => ({ role: m.role, content: m.content })),
+        await streamCall({
+          provider,
+          model,
+          messages: oaiMessages,
+          toolChoice: 'none',
+          maxTokens: 1024,
+          onToken: text => controller.enqueue(enc.encode(`data: ${JSON.stringify({ text })}\n\n`)),
         })
-
-        for await (const chunk of response) {
-          if (
-            chunk.type === 'content_block_delta' &&
-            chunk.delta.type === 'text_delta'
-          ) {
-            const data = JSON.stringify({ text: chunk.delta.text })
-            controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`))
-          }
-        }
-
-        controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
+        controller.enqueue(enc.encode('data: [DONE]\n\n'))
         controller.close()
       } catch (err: any) {
         const errData = JSON.stringify({ error: err.message })
-        controller.enqueue(new TextEncoder().encode(`data: ${errData}\n\n`))
+        controller.enqueue(enc.encode(`data: ${errData}\n\n`))
         controller.close()
       }
     },
