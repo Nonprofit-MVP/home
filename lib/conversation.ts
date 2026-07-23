@@ -27,3 +27,29 @@ export function appendConversationAnalytics(
 
   return `${cleaned}\n${conversationAnalyticsPixel(articleId)}`
 }
+
+/**
+ * Article pages already render cover_image_url as a hero. Conversation HTML
+ * usually opens with the same image in a <figure>, so strip that lead figure
+ * (and any leftover matching <img>) to avoid a double cover.
+ */
+export function stripLeadingCoverImage(
+  body: string,
+  coverImageUrl?: string | null
+): string {
+  if (!body) return body
+
+  let cleaned = body.replace(/^\s*<figure\b[^>]*>[\s\S]*?<\/figure>\s*/i, '')
+
+  if (coverImageUrl) {
+    const fileKey = coverImageUrl.match(/\/([^/?#]+\.(?:jpe?g|png|gif|webp))/i)?.[1]
+    if (fileKey) {
+      const escaped = fileKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      cleaned = cleaned
+        .replace(new RegExp(`<figure\\b[^>]*>[\\s\\S]*?${escaped}[\\s\\S]*?<\\/figure>`, 'i'), '')
+        .replace(new RegExp(`<img\\b[^>]*src=["'][^"']*${escaped}[^"']*["'][^>]*>`, 'i'), '')
+    }
+  }
+
+  return cleaned.trim()
+}

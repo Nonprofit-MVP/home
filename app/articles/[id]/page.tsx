@@ -5,7 +5,7 @@ import { createServerSupabaseClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import type { Article } from '@/types'
 import { formatDate, formatAuthors } from '@/lib/utils'
-import { appendConversationAnalytics } from '@/lib/conversation'
+import { appendConversationAnalytics, stripLeadingCoverImage } from '@/lib/conversation'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 
 interface PageProps {
@@ -45,10 +45,13 @@ export default async function ArticlePage({ params }: PageProps) {
     .eq('id', params.id)
     .then(() => {})
 
-  const articleBody = appendConversationAnalytics(
-    article.body,
-    article.source_url,
-    article.external_id
+  const articleBody = stripLeadingCoverImage(
+    appendConversationAnalytics(
+      article.body,
+      article.source_url,
+      article.external_id
+    ),
+    article.cover_image_url
   )
 
   return (
