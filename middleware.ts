@@ -1,7 +1,21 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const PROTECTED_PREFIXES = ['/dashboard', '/papers/submit', '/research']
+
+function isProtectedPath(pathname: string) {
+  return PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  )
+}
+
 export async function middleware(request: NextRequest) {
+  // Public routes skip the Auth round-trip — getUser() alone was adding ~0.5–2s
+  // to every homepage hit.
+  if (!isProtectedPath(request.nextUrl.pathname)) {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -23,16 +37,11 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh the session — this keeps auth cookies valid across requests.
-  // IMPORTANT: do not add any logic between createServerClient and getUser().
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  // Protect dashboard routes
-  const isDashboard = request.nextUrl.pathname.startsWith('/dashboard') ||
-                      request.nextUrl.pathname.startsWith('/papers/submit') ||
-                      request.nextUrl.pathname.startsWith('/research')
-
-  if (!user && isDashboard) {
+  if (!user) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/auth/login'
     return NextResponse.redirect(loginUrl)
@@ -43,9 +52,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all paths except static files, images, and Next.js internals.
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

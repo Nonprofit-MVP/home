@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { TagChip } from '@/components/ui/TagChip'
 import { Button } from '@/components/ui/Button'
@@ -75,12 +75,15 @@ export default async function PaperPage({ params }: PageProps) {
     isBookmarked = !!bookmark
   }
 
-  // Fire-and-forget view count increment — don't block render
-  supabase
+  // Fire-and-forget view count — service role bypasses owner-only UPDATE RLS
+  const admin = createServiceRoleClient()
+  void admin
     .from('papers')
     .update({ view_count: (paper.view_count || 0) + 1 })
     .eq('id', params.id)
-    .then(() => {}) // intentionally not awaited
+    .then(({ error }) => {
+      if (error) console.error('[papers] view_count update failed:', error.message)
+    })
 
   const authors = Array.isArray(paper.authors) ? paper.authors : []
 

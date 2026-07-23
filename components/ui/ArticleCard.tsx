@@ -3,11 +3,8 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Eye, ExternalLink } from 'lucide-react'
-import { cn, formatAuthors, formatDate, formatNumber } from '@/lib/utils'
-import {
-  canadianUniversitiesFromAuthors,
-  universityLogoUrl,
-} from '@/lib/canadian-universities'
+import { cn, formatDate, formatNumber } from '@/lib/utils'
+import { formatAuthorsWithUniversities } from '@/lib/canadian-universities'
 import type { Article } from '@/types'
 
 interface ArticleCardProps {
@@ -17,8 +14,7 @@ interface ArticleCardProps {
 
 export function ArticleCard({ article, className }: ArticleCardProps) {
   const authors = Array.isArray(article.authors) ? article.authors : []
-  const authorLine = formatAuthors(authors)
-  const universities = canadianUniversitiesFromAuthors(authors)
+  const authorLine = formatAuthorsWithUniversities(authors)
 
   return (
     <Link href={`/articles/${article.id}`} className="block group">
@@ -42,38 +38,17 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
         </div>
 
         <div className="p-4">
-          <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-start justify-end gap-2 mb-2">
             <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
               {article.source_name}
             </span>
-
-            {universities.length > 0 && (
-              <div className="flex items-center -space-x-1.5">
-                {universities.slice(0, 3).map((uni) => (
-                  <span
-                    key={uni.id}
-                    title={uni.name}
-                    className="relative inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/10 bg-white overflow-hidden"
-                  >
-                    <Image
-                      src={universityLogoUrl(uni.domain)}
-                      alt={uni.shortName}
-                      width={16}
-                      height={16}
-                      className="object-contain"
-                      unoptimized
-                    />
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
 
           <h3 className="font-mono text-sm font-medium text-zinc-100 line-clamp-2 leading-snug mb-2 group-hover:text-white transition-colors">
             {article.title}
           </h3>
 
-          <p className="text-xs text-zinc-500 mb-1">{authorLine}</p>
+          <p className="text-xs text-zinc-500 mb-2 line-clamp-2">{authorLine}</p>
 
           <p className="text-[13px] text-zinc-500 line-clamp-3 leading-relaxed mb-3">
             {article.excerpt}
@@ -83,7 +58,7 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
             <span>{formatDate(article.published_at || article.created_at)}</span>
             <div className="flex items-center gap-1 ml-auto">
               <Eye className="w-3 h-3" />
-              <span>{formatNumber(article.view_count)}</span>
+              <span>{formatNumber(article.view_count ?? 0)}</span>
             </div>
             <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>

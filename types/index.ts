@@ -188,10 +188,11 @@ export interface PaperFeedItem extends Paper {
 
 export interface Article {
   id: string;
-  external_id: string;
+  external_id?: string;
   title: string;
   excerpt: string;
-  body: string;
+  /** Full HTML — only loaded on the article detail page, not feed cards. */
+  body?: string;
   authors: Author[];
   source_name: string;
   source_url: string;
@@ -200,5 +201,5 @@ export interface Article {
   view_count: number;
   published_at?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }

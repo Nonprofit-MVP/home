@@ -34,7 +34,12 @@ async function fetchPapers(
   const from = page * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
 
-  let query = supabase.from('papers').select('*').range(from, to)
+  let query = supabase
+    .from('papers')
+    .select(
+      'id,title,abstract,tldr,authors,field_tags,status,doi,created_at,published_at,view_count,citation_count,replication_score,version'
+    )
+    .range(from, to)
 
   // Status filter — search overrides column type
   if (search?.status) {

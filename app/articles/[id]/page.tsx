@@ -1,12 +1,13 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import type { Article } from '@/types'
-import { formatDate, formatAuthors } from '@/lib/utils'
+import { formatDate, formatNumber } from '@/lib/utils'
+import { formatAuthorsWithUniversities } from '@/lib/canadian-universities'
 import { appendConversationAnalytics, stripLeadingCoverImage } from '@/lib/conversation'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Eye } from 'lucide-react'
 
 interface PageProps {
   params: { id: string }
@@ -26,6 +27,21 @@ export async function generateMetadata({ params }: PageProps) {
   }
 }
 
+async function incrementArticleViews(id: string, current: number) {
+  // Articles RLS only allows SELECT for anon — use service role for the bump.
+  const admin = createServiceRoleClient()
+  const { error } = await admin
+    .from('articles')
+    .update({ view_count: current + 1 })
+    .eq('id', id)
+
+  if (error) {
+    console.error('[articles] view_count update failed:', error.message)
+    return current
+  }
+  return current + 1
+}
+
 export default async function ArticlePage({ params }: PageProps) {
   const supabase = await createServerSupabaseClient()
   const { data } = await supabase
@@ -38,16 +54,14 @@ export default async function ArticlePage({ params }: PageProps) {
 
   const article = data as unknown as Article
   const authors = Array.isArray(article.authors) ? article.authors : []
-
-  supabase
-    .from('articles')
-    .update({ view_count: (article.view_count || 0) + 1 })
-    .eq('id', params.id)
-    .then(() => {})
+  const viewCount = await incrementArticleViews(
+    params.id,
+    article.view_count || 0
+  )
 
   const articleBody = stripLeadingCoverImage(
     appendConversationAnalytics(
-      article.body,
+      article.body ?? '',
       article.source_url,
       article.external_id
     ),
@@ -74,28 +88,19 @@ export default async function ArticlePage({ params }: PageProps) {
               {formatDate(article.published_at)}
             </span>
           )}
+          <span className="inline-flex items-center gap-1 text-xs font-mono text-zinc-600">
+            <Eye className="w-3.5 h-3.5" />
+            {formatNumber(viewCount)}
+          </span>
         </div>
 
         <h1 className="font-mono text-2xl sm:text-3xl font-bold text-white leading-tight mb-4">
           {article.title}
         </h1>
 
-        <p className="text-sm text-zinc-400 mb-4">{formatAuthors(authors)}</p>
-
-        {authors.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {authors.map((author, index) => (
-              author.institution ? (
-                <span
-                  key={`${author.name}-${index}`}
-                  className="text-[11px] font-mono px-1.5 py-0.5 rounded border border-white/8 text-zinc-600"
-                >
-                  {author.institution}
-                </span>
-              ) : null
-            ))}
-          </div>
-        )}
+        <p className="text-sm text-zinc-400 mb-6">
+          {formatAuthorsWithUniversities(authors)}
+        </p>
 
         <div className="flex flex-wrap items-center gap-3 mb-6 pb-6 border-b border-white/8">
           <a href={article.source_url} target="_blank" rel="noopener noreferrer">
@@ -122,7 +127,6 @@ export default async function ArticlePage({ params }: PageProps) {
         <p className="text-zinc-400 leading-relaxed text-base mb-8 border-l-2 border-sky-400/30 pl-4">
           {article.excerpt}
         </p>
-
       </div>
 
       <div

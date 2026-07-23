@@ -47,7 +47,9 @@ async function fetchArticles({
 
   let query = supabase
     .from('articles')
-    .select('*')
+    .select(
+      'id,title,excerpt,authors,cover_image_url,source_name,source_url,published_at,created_at,view_count,field_tags'
+    )
     .contains('field_tags', [locale])
 
   if (tag) {
