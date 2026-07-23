@@ -18,6 +18,10 @@ const BLOCK_PATTERNS: RegExp[] = [
   /\b(writerly|everyday skill|moral questions|for all of humanity)\b/i,
   /\b(butter or margarine|baked goods)\b/i,
   /\b(ai prompting|prompting turned)\b/i,
+  /\b(graphic violence|gore online|teens have seen)\b/i,
+  /\b(ice['’]s tech|surveillance expand|activists are fighting)\b/i,
+  /\b(older people want a say|wherever ai is heading)\b/i,
+  /\b(héritage pour la sécurité|découpage technologique|esquiver la régulation)\b/i,
 
   // Politics / policy / geopolitics (not science of natural disasters)
   /\b(trump|harris|election|campaign|parliament|congress|senator|legislation)\b/i,
@@ -40,7 +44,7 @@ const HARD_SCIENCE_SIGNALS: RegExp[] = [
   // Physics / astronomy / cosmology
   /\b(quantum|physics|physicist|spacetime|relativity|neutrino|boson|fermion|photon|laser)\b/i,
   /\b(black hole|dark (matter|energy)|galaxy|galaxies|supernova|neutron star|pulsar)\b/i,
-  /\b(telescope|astronom|astrophysic|cosmolog|exoplanet|solar (flare|system|wind)|orbit)\b/i,
+  /\b(telescope|astronom\w*|astrophysic\w*|cosmolog\w*|exoplanet|solar (flare|system|wind)|orbit)\b/i,
   /\b(particle|hadron|collider|entanglement|superconduct|magnetism|gravity)\b/i,
 
   // Chemistry / materials
@@ -58,7 +62,7 @@ const HARD_SCIENCE_SIGNALS: RegExp[] = [
   /\b(climate model|oceanograph|atmosphere|glaci|paleoclim|permafrost)\b/i,
 
   // Mathematics
-  /\b(mathematic|theorem|conjecture|prime numbers?|jacobian|geometry|topology|algebra)\b/i,
+  /\b(mathematic|mathematics|theorem|conjecture|prime numbers?|jacobian|geometry|topology|algebra)\b/i,
   /\b(equation|proof|number theory|combinator|statistic(al)? model)\b/i,
 
   // Computer science / serious AI research
@@ -76,10 +80,11 @@ const HARD_SCIENCE_SIGNALS: RegExp[] = [
   /\b(physique|quantique|astronom|astrophys|cosmolog|trou noir|matière noire|énergie sombre)\b/i,
   /\b(chim(ie|ique)|molécul|atome|périodique|nanotech|nanomatériau|catalyse)\b/i,
   /\b(génome|protéine|enzyme|cellule|microscop|évolution|fossile|bactéri)\b/i,
-  /\b(géolog|tectonique|séisme|volcan|minéral|manteau|cratère|stratosphère)\b/i,
+  /\b(géolog|tectonique|séismes?|volcans?|minéral|manteau|cratère|stratosphère)\b/i,
   /\b(mathémat|théorème|conjecture|algorithme|informatique|intelligence artificielle)\b/i,
-  /\b(muon|comète|satellite|métaux précieux|synapses?|système nerveux|rayons? n)\b/i,
+  /\b(muon|muons|comète|comètes|satellite|métaux précieux|synapses?|système nerveux|rayons? n)\b/i,
   /\b(constellations? de satellites|centres? de données|recycle(r)? les métaux)\b/i,
+  /\b(astronomes?|astrophysicien|extraterrestres?|microfossiles?)\b/i,
 ]
 
 export function isHardScienceArticle(title: string, excerpt = ''): boolean {

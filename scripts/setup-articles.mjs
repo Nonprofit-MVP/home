@@ -73,6 +73,10 @@ const BLOCK_PATTERNS = [
   /\b(writerly|everyday skill|moral questions|for all of humanity)\b/i,
   /\b(butter or margarine|baked goods)\b/i,
   /\b(ai prompting|prompting turned)\b/i,
+  /\b(graphic violence|gore online|teens have seen)\b/i,
+  /\b(ice['']s tech|surveillance expand|activists are fighting)\b/i,
+  /\b(older people want a say|wherever ai is heading)\b/i,
+  /\b(héritage pour la sécurité|découpage technologique|esquiver la régulation)\b/i,
   /\b(trump|harris|election|campaign|parliament|congress|senator|legislation)\b/i,
   /\b(geopolitic|foreign policy|government is controlling)\b/i,
   /\b(ai safety['']? priorities|policing ai in the classroom)\b/i,
@@ -88,7 +92,7 @@ const BLOCK_PATTERNS = [
 const HARD_SCIENCE_SIGNALS = [
   /\b(quantum|physics|physicist|spacetime|relativity|neutrino|boson|fermion|photon|laser)\b/i,
   /\b(black hole|dark (matter|energy)|galaxy|galaxies|supernova|neutron star|pulsar)\b/i,
-  /\b(telescope|astronom|astrophysic|cosmolog|exoplanet|solar (flare|system|wind)|orbit)\b/i,
+  /\b(telescope|astronom\w*|astrophysic\w*|cosmolog\w*|exoplanet|solar (flare|system|wind)|orbit)\b/i,
   /\b(particle|hadron|collider|entanglement|superconduct|magnetism|gravity)\b/i,
   /\b(chemist|chemical|molecule|molecular|atom|atomic|periodic table|element)\b/i,
   /\b(nanoparticle|nanotech|nanomaterial|catalyst|polymer|crystal|semiconductor)\b/i,
@@ -98,7 +102,7 @@ const HARD_SCIENCE_SIGNALS = [
   /\b(evolution|natural selection|organism|species|ecology|fossils?)\b/i,
   /\b(geolog|tectonic|magma|mantle|crater|seismic|earthquake|mineral|sediment)\b/i,
   /\b(climate model|oceanograph|atmosphere|glaci|paleoclim|permafrost)\b/i,
-  /\b(mathematic|theorem|conjecture|prime numbers?|jacobian|geometry|topology|algebra)\b/i,
+  /\b(mathematic|mathematics|theorem|conjecture|prime numbers?|jacobian|geometry|topology|algebra)\b/i,
   /\b(equation|proof|number theory|combinator|statistic(al)? model)\b/i,
   /\b(computer science|algorithm|computational|simulation|compiler|cryptograph)\b/i,
   /\b(machine learning|neural networks?|deep learning|large language models?|llms?)\b/i,
@@ -110,10 +114,11 @@ const HARD_SCIENCE_SIGNALS = [
   /\b(physique|quantique|astronom|astrophys|cosmolog|trou noir|matière noire|énergie sombre)\b/i,
   /\b(chim(ie|ique)|molécul|atome|périodique|nanotech|nanomatériau|catalyse)\b/i,
   /\b(génome|protéine|enzyme|cellule|microscop|évolution|fossile|bactéri)\b/i,
-  /\b(géolog|tectonique|séisme|volcan|minéral|manteau|cratère|stratosphère)\b/i,
+  /\b(géolog|tectonique|séismes?|volcans?|minéral|manteau|cratère|stratosphère)\b/i,
   /\b(mathémat|théorème|conjecture|algorithme|informatique|intelligence artificielle)\b/i,
-  /\b(muon|comète|satellite|métaux précieux|synapses?|système nerveux|rayons? n)\b/i,
+  /\b(muon|muons|comète|comètes|satellite|métaux précieux|synapses?|système nerveux|rayons? n)\b/i,
   /\b(constellations? de satellites|centres? de données|recycle(r)? les métaux)\b/i,
+  /\b(astronomes?|astrophysicien|extraterrestres?|microfossiles?)\b/i,
 ]
 
 function isHardScienceArticle(title, excerpt = '') {

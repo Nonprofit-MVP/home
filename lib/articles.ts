@@ -235,12 +235,16 @@ let refreshInFlight: Promise<void> | null = null
 /**
  * Kick off a Conversation feed refresh in the background.
  * Never await this on a request path — a full import can take 30s+.
+ * Always purges non-hard-science leftovers, even when feeds are still fresh.
  */
 export function scheduleConversationArticlesRefresh(): void {
   if (refreshInFlight) return
 
   refreshInFlight = (async () => {
     try {
+      // Scrub lifestyle/political leftovers left from older importers
+      await purgeNonHardScienceArticles()
+
       const supabase = createServiceRoleClient()
       const { data } = await supabase
         .from('articles')
